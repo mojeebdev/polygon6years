@@ -1,5 +1,6 @@
 export interface WalletData {
   address: string
+  xHandle: string | null   
   firstTxHash: string | null
   firstTxDate: Date | null
   firstTxTimestamp: number | null
@@ -10,10 +11,10 @@ export interface WalletData {
   daysOnChain: number | null
   percentile: number
   badgeLabel: string
-  rankScore: number        
-  rankTier: string         
-  rankTierLabel: string    
-  rankTierColor: string    
+  rankScore: number
+  rankTier: string
+  rankTierLabel: string
+  rankTierColor: string
 }
 
 const POLYGON_RPC = 'https://polygon-rpc.com'
@@ -48,8 +49,7 @@ function getBadgeLabel(daysOnChain: number): string {
   return '✨ New to Polygon'
 }
 
-// Rank score: 1000 = day-one genesis, scales down linearly to present
-// Based purely on how early the first tx was relative to chain age
+
 export function calcRankScore(firstTxTimestamp: number): number {
   const chainAgeMs = NOW.getTime() - POLYGON_BIRTHDAY.getTime()
   const walletAgeMs = NOW.getTime() - firstTxTimestamp * 1000
@@ -68,7 +68,7 @@ export function getRankTier(score: number): { tier: string; label: string; color
 }
 
 async function fetchFromPolygonscan(address: string): Promise<WalletData | null> {
-  const apiKey = process.env.POLYGONSCAN_API_KEY || 'YourApiKeyToken'
+  const apiKey = process.env.NEXT_PUBLIC_POLYGONSCAN_API_KEY || 'YourApiKeyToken'
 
   const txRes = await fetch(
     `${POLYGONSCAN_API}?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=1&sort=asc&apikey=${apiKey}`,
@@ -96,6 +96,7 @@ async function fetchFromPolygonscan(address: string): Promise<WalletData | null>
     if (txCount && txCount > 0) {
       return {
         address,
+        xHandle: null,
         firstTxHash: null,
         firstTxDate: null,
         firstTxTimestamp: null,
@@ -126,6 +127,7 @@ async function fetchFromPolygonscan(address: string): Promise<WalletData | null>
 
   return {
     address,
+    xHandle: null,
     firstTxHash,
     firstTxDate,
     firstTxTimestamp,
@@ -162,6 +164,7 @@ async function fetchFromRPC(address: string): Promise<WalletData | null> {
 
   return {
     address,
+    xHandle: null,
     firstTxHash: null,
     firstTxDate: null,
     firstTxTimestamp: null,
@@ -211,9 +214,10 @@ export function buildShareText(data: WalletData): string {
     ? data.firstTxDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : 'the early days'
   const yrs = data.daysOnChain ? Math.floor(data.daysOnChain / 365) : 0
-  const rankLine = data.rankScore > 0 ? `\nRank Score: ${data.rankScore}/1000 · ${data.rankTier} — ${data.rankTierLabel}` : ''
+  const handleLine = data.xHandle ? `@${data.xHandle.replace(/^@/, '')} ` : ''
+  const rankLine = data.rankScore > 0 ? `\nRank: ${data.rankScore}/1000 · ${data.rankTier} ${data.rankTierLabel}` : ''
 
-  return `🟣 Happy 6th Anniversary @0xPolygon!\n\n${shortenAddress(data.address)} has been on Polygon since ${dateStr}${yrs > 0 ? ` — ${yrs} year${yrs > 1 ? 's' : ''} on-chain` : ''}.\n\n${data.eraEmoji} ${data.era}\n${data.badgeLabel}${rankLine}\n\nWhen did YOU first go on-chain? 👇\npolygon.firsttx.xyz\n\n#Polygon6 #Polygon #Web3 #POL`
+  return `🟣 Happy 6th Anniversary @0xPolygon!\n\n${handleLine}${shortenAddress(data.address)} has been on Polygon since ${dateStr}${yrs > 0 ? ` — ${yrs} year${yrs > 1 ? 's' : ''} on-chain` : ''}.\n\n${data.eraEmoji} ${data.era}\n${data.badgeLabel}${rankLine}\n\nWhen did YOU first go on-chain? 👇\npolygon.firsttx.xyz\n\n#Polygon6 #Polygon #Web3 #POL`
 }
 
 export function buildTweetUrl(data: WalletData, launchTweetUrl: string): string {

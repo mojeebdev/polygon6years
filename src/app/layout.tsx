@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: '/polygon.jpg',
-    apple: '/polygon.jpg',
+    apple: '/polygon.jg',
   },
 }
 
