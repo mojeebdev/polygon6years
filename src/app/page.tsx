@@ -9,6 +9,7 @@ type Step = 'idle' | 'loading' | 'result' | 'error'
 
 export default function Home() {
   const [input, setInput] = useState('')
+  const [xInput, setXInput] = useState('')
   const [step, setStep] = useState<Step>('idle')
   const [loadingText, setLoadingText] = useState('Querying Polygon RPC...')
   const [errorMsg, setErrorMsg] = useState('')
@@ -35,10 +36,19 @@ export default function Home() {
     finally { setLeaderboardLoading(false) }
   }
 
+  function normalizeXHandle(raw: string): string | null {
+    if (!raw.trim()) return null
+    const stripped = raw.trim().replace(/^@/, '').replace(/^https?:\/\/(www\.)?x\.com\//, '').replace(/^https?:\/\/(www\.)?twitter\.com\//, '').split('/')[0].split('?')[0]
+    if (!stripped) return null
+    return '@' + stripped
+  }
+
   async function handleLookup() {
     const addr = input.trim()
     if (!addr) { setErrorMsg('Enter a wallet address'); setStep('error'); return }
     if (!isValidAddress(addr)) { setErrorMsg('Invalid address. Must start with 0x and be 42 characters.'); setStep('error'); return }
+
+    const xHandle = normalizeXHandle(xInput)
 
     setStep('loading'); setErrorMsg(''); setMilestoneWidth(0); setSubmitStatus('idle')
 
@@ -47,7 +57,7 @@ export default function Home() {
     const interval = setInterval(() => { si = (si + 1) % loadingSteps.length; setLoadingText(loadingSteps[si]) }, 1800)
 
     try {
-      const data = await fetchWalletData(addr)
+      const data = await fetchWalletData(addr, xHandle)
       clearInterval(interval)
       if (!data) { setErrorMsg(`No on-chain activity found for ${shortenAddress(addr)} on Polygon mainnet.`); setStep('error'); return }
       setWalletData(data); setStep('result')
@@ -131,7 +141,7 @@ export default function Home() {
   }
 
   function handleReset() {
-    setStep('idle'); setInput(''); setWalletData(null); setErrorMsg(''); setMilestoneWidth(0); setSubmitStatus('idle')
+    setStep('idle'); setInput(''); setXInput(''); setWalletData(null); setErrorMsg(''); setMilestoneWidth(0); setSubmitStatus('idle')
   }
 
   const shareText = walletData ? buildShareText(walletData) : ''
@@ -175,12 +185,17 @@ export default function Home() {
         .input-section{width:100%;max-width:560px;margin-bottom:12px;}
         .input-wrap{display:flex;background:var(--void-02);border:1px solid var(--void-05);border-radius:14px;overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s;}
         .input-wrap:focus-within{border-color:rgba(123,63,228,0.4);box-shadow:0 0 0 3px rgba(123,63,228,0.1);}
+        .x-input-wrap{display:flex;align-items:center;background:var(--void-02);border:1px solid var(--void-05);border-radius:12px;overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s;margin-top:10px;}
+        .x-input-wrap:focus-within{border-color:rgba(123,63,228,0.3);box-shadow:0 0 0 3px rgba(123,63,228,0.08);}
+        .x-prefix{padding:12px 0 12px 14px;font-family:'DM Mono',monospace;font-size:13px;color:#A855F7;font-weight:500;flex-shrink:0;user-select:none;}
         input[type="text"]{flex:1;min-width:0;background:transparent;border:none;outline:none;padding:15px 16px;font-family:'DM Mono',monospace;font-size:13px;color:var(--ink-primary);caret-color:#A855F7;}
+        .x-input-wrap input[type="text"]{padding:12px 14px 12px 4px;}
         input::placeholder{color:var(--ink-tertiary);}
         .lookup-btn{padding:15px 20px;background:var(--accent);border:none;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:opacity 0.2s,background 0.2s;white-space:nowrap;flex-shrink:0;}
         .lookup-btn:hover:not(:disabled){background:#A855F7;}
         .lookup-btn:disabled{opacity:0.4;cursor:not-allowed;}
         .input-hint{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-tertiary);text-align:center;margin-top:10px;}
+        .x-hint{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-tertiary);margin-top:6px;padding-left:2px;}
         .error-box{font-family:'DM Mono',monospace;font-size:12px;color:#F87171;background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.2);border-radius:10px;padding:12px 16px;text-align:center;margin-top:14px;animation:fadeUp 0.3s ease both;max-width:560px;width:100%;}
         .loading-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:48px;animation:fadeIn 0.4s ease both;}
         .loading-ring{width:40px;height:40px;border:2px solid var(--void-05);border-top-color:var(--accent);border-right-color:#A855F7;border-radius:50%;animation:spin 0.7s linear infinite;}
@@ -193,8 +208,11 @@ export default function Home() {
         .card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:8px;}
         .polygon-logo{display:flex;align-items:center;gap:8px;font-family:'Syne',sans-serif;font-size:13px;font-weight:800;letter-spacing:-0.02em;color:var(--ink-primary);}
         .card-badge{font-family:'Plus Jakarta Sans',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#C084FC;background:rgba(192,132,252,0.1);border:1px solid rgba(192,132,252,0.22);border-radius:100px;padding:4px 12px;white-space:nowrap;}
-        .card-address{font-family:'Syne',sans-serif;font-size:clamp(18px,5vw,30px);font-weight:900;letter-spacing:-0.02em;color:#fff;margin-bottom:4px;word-break:break-all;line-height:1.1;}
-        .card-era-row{font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,0.35);font-style:italic;margin-bottom:14px;}
+        .card-identity{margin-bottom:4px;}
+        .card-address{font-family:'Syne',sans-serif;font-size:clamp(18px,5vw,30px);font-weight:900;letter-spacing:-0.02em;color:#fff;word-break:break-all;line-height:1.1;}
+        .card-x-handle{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:12px;color:#A855F7;margin-top:5px;font-weight:500;}
+        .card-x-handle svg{opacity:0.7;}
+        .card-era-row{font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,0.35);font-style:italic;margin-top:4px;margin-bottom:14px;}
         .card-chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
         .chip{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:100px;padding:3px 10px;}
         .chip .dot{width:5px;height:5px;border-radius:50%;background:#A855F7;flex-shrink:0;}
@@ -292,7 +310,23 @@ export default function Home() {
               Look up →
             </button>
           </div>
-          <p className="input-hint">Works with any EVM wallet address · Polygon PoS mainnet</p>
+
+          <div className="x-input-wrap">
+            <span className="x-prefix">𝕏</span>
+            <input
+              type="text"
+              placeholder="your X handle (optional)"
+              value={xInput}
+              onChange={e => setXInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleLookup()}
+              disabled={step === 'loading'}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </div>
+          <p className="x-hint">Your handle will appear on your card · e.g. mojeebeth</p>
+
+          <p className="input-hint" style={{marginTop:'8px'}}>Works with any EVM wallet address · Polygon PoS mainnet</p>
         </div>
 
         {step === 'error' && <div className="error-box">{errorMsg}</div>}
@@ -321,7 +355,15 @@ export default function Home() {
                 <span className="card-badge">{walletData.badgeLabel}</span>
               </div>
 
-              <div className="card-address">{shortenAddress(walletData.address)}</div>
+              <div className="card-identity">
+                <div className="card-address">{shortenAddress(walletData.address)}</div>
+                {walletData.xHandle && (
+                  <div className="card-x-handle">
+                    <XIcon />
+                    {walletData.xHandle}
+                  </div>
+                )}
+              </div>
               <div className="card-era-row">{walletData.eraEmoji} {walletData.era}</div>
 
               <div className="card-chips">
