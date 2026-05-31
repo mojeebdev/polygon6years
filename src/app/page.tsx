@@ -197,7 +197,7 @@ export default function Home() {
   const diffYears = walletData?.daysOnChain ? (walletData.daysOnChain / 365.25) : 0
   const teamRole = walletData ? getTeamRole(walletData.xHandle) : null
   const avatarUrl = walletData?.xHandle && !avatarError
-    ? `https://unavatar.io/twitter/${walletData.xHandle.replace(/^@/, '')}`
+    ? `https://unavatar.io/x/${walletData.xHandle.replace(/^@/, '')}`
     : null
 
   return (
