@@ -5,7 +5,7 @@ import {
   fetchWalletData, isValidAddress, shortenAddress, buildShareText, buildTweetUrl,
   POLYGON_BIRTHDAY, NOW, LAUNCH_TWEET_URL, type WalletData
 } from '@/lib/polygon'
-import { submitToLeaderboard, getLeaderboard, GENESIS_ENTRY, type LeaderboardEntry } from '@/lib/leaderboard'
+import { submitToLeaderboard, getLeaderboard, type LeaderboardEntry } from '@/lib/leaderboard'
 import html2canvas from 'html2canvas'
 
 type Step = 'idle' | 'loading' | 'result' | 'error'
@@ -58,7 +58,8 @@ export default function Home() {
       if (!data) { setErrorMsg(`No on-chain activity found for ${shortenAddress(addr)} on Polygon mainnet.`); setStep('error'); return }
       const xHandle = cleanHandle(xHandleInput)
       data.xHandle = xHandle
-      setWalletData(data); setStep('result')
+      setWalletData(data)
+      setStep('result')
       setTimeout(() => fireConfetti(), 400)
       setTimeout(() => {
         const pct = data.firstTxTimestamp
@@ -66,6 +67,31 @@ export default function Home() {
           : 0
         setMilestoneWidth(Math.max(5, pct))
       }, 700)
+
+      // auto-submit to leaderboard
+      if (data.firstTxTimestamp) {
+        try {
+          await submitToLeaderboard({
+            address: data.address,
+            xHandle: xHandle ?? null,
+            firstTxTimestamp: data.firstTxTimestamp,
+            firstTxDate: data.firstTxDate!.toISOString(),
+            era: data.era,
+            eraEmoji: data.eraEmoji,
+            badgeLabel: data.badgeLabel,
+            daysOnChain: data.daysOnChain!,
+            txCount: data.txCount,
+            rankScore: data.rankScore,
+            rankTier: data.rankTier,
+            rankTierLabel: data.rankTierLabel,
+            rankTierColor: data.rankTierColor,
+          })
+          setSubmitStatus('done')
+          await loadLeaderboard()
+        } catch (_) {
+          // silent fail — user can still manually submit
+        }
+      }
     } catch (_) {
       clearInterval(interval)
       setErrorMsg('Network error. Try again in a moment.')
@@ -186,18 +212,15 @@ export default function Home() {
 
         .page-wrap{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:52px 16px 60px;width:100%;}
 
-        /* PILL */
         .anniv-pill{display:inline-flex;align-items:center;gap:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#C084FC;background:rgba(192,132,252,0.08);border:1px solid rgba(192,132,252,0.22);border-radius:100px;padding:7px 16px;margin-bottom:24px;}
         .anniv-pill .dot{width:6px;height:6px;border-radius:50%;background:#A855F7;animation:pulse 2s ease-in-out infinite;flex-shrink:0;}
 
-        /* HERO */
         .hero{text-align:center;margin-bottom:36px;width:100%;max-width:640px;}
         .hero-eyebrow{display:block;font-family:'DM Mono',monospace;font-size:10px;color:#A855F7;letter-spacing:0.1em;margin-bottom:12px;opacity:0.8;}
         h1{font-family:'Syne',sans-serif;font-size:clamp(30px,8vw,72px);font-weight:900;letter-spacing:-0.03em;line-height:1.04;color:var(--ink-primary);margin-bottom:16px;}
         .gradient-text{background:linear-gradient(135deg,#A855F7 0%,#C084FC 50%,#F0ABFC 100%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 4s linear infinite;}
         .hero-sub{font-family:'DM Mono',monospace;font-size:12px;color:var(--ink-secondary);max-width:380px;margin:0 auto;line-height:1.8;}
 
-        /* INPUT SECTION */
         .input-section{width:100%;max-width:560px;margin-bottom:12px;display:flex;flex-direction:column;gap:10px;}
         .input-row{display:flex;background:var(--void-02);border:1px solid var(--void-05);border-radius:14px;overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s;}
         .input-row:focus-within{border-color:rgba(123,63,228,0.4);box-shadow:0 0 0 3px rgba(123,63,228,0.1);}
@@ -210,20 +233,15 @@ export default function Home() {
         .lookup-btn:hover:not(:disabled){background:#A855F7;}
         .lookup-btn:disabled{opacity:0.4;cursor:not-allowed;}
         .input-hint{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-tertiary);text-align:center;}
-        .x-handle-hint{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-tertiary);text-align:left;padding-left:2px;}
 
-        /* ERROR */
         .error-box{font-family:'DM Mono',monospace;font-size:12px;color:#F87171;background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.2);border-radius:10px;padding:12px 16px;text-align:center;margin-top:14px;animation:fadeUp 0.3s ease both;max-width:560px;width:100%;}
 
-        /* LOADING */
         .loading-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:48px;animation:fadeIn 0.4s ease both;}
         .loading-ring{width:40px;height:40px;border:2px solid var(--void-05);border-top-color:var(--accent);border-right-color:#A855F7;border-radius:50%;animation:spin 0.7s linear infinite;}
         .loading-text{font-family:'DM Mono',monospace;font-size:12px;color:var(--ink-secondary);text-align:center;}
 
-        /* RESULT */
         .result-wrap{width:100%;max-width:560px;margin-top:32px;animation:fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both;}
 
-        /* SHARE CARD */
         .share-card{background:linear-gradient(140deg,#0D0A1E 0%,#100D20 50%,#0C0A1A 100%);border:1px solid rgba(123,63,228,0.28);border-radius:22px;padding:24px 22px 22px;position:relative;overflow:hidden;}
         .share-card::before{content:'';position:absolute;top:-100px;left:-80px;width:280px;height:280px;background:radial-gradient(circle,rgba(123,63,228,0.18),transparent 65%);pointer-events:none;}
         .share-card::after{content:'';position:absolute;bottom:-80px;right:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(168,85,247,0.15),transparent 65%);pointer-events:none;}
@@ -233,7 +251,6 @@ export default function Home() {
         .card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:8px;}
         .polygon-logo{display:flex;align-items:center;gap:8px;font-family:'Syne',sans-serif;font-size:13px;font-weight:800;letter-spacing:-0.02em;color:var(--ink-primary);}
 
-        /* RANK BADGE — the big addition */
         .rank-badge-wrap{display:flex;align-items:center;gap:6px;}
         .rank-tier-badge{display:inline-flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:900;font-size:14px;letter-spacing:-0.01em;width:36px;height:36px;border-radius:10px;flex-shrink:0;animation:rankPop 0.5s 0.3s cubic-bezier(0.16,1,0.3,1) both;}
         .rank-score-label{display:flex;flex-direction:column;align-items:flex-end;}
@@ -248,7 +265,6 @@ export default function Home() {
         .chip{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:100px;padding:3px 10px;}
         .chip .dot{width:5px;height:5px;border-radius:50%;background:#A855F7;flex-shrink:0;}
 
-        /* STATS */
         .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
         .stat-block{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:13px 12px;}
         .stat-label{font-family:'Plus Jakarta Sans',sans-serif;font-size:8px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.28);margin-bottom:6px;}
@@ -256,7 +272,6 @@ export default function Home() {
         .stat-value.hero-num{font-family:'Syne',sans-serif;font-size:28px;font-weight:900;letter-spacing:-0.03em;background:linear-gradient(135deg,#A855F7,#C084FC);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
         .stat-value.purple{color:#C084FC;}
 
-        /* MILESTONE */
         .milestone-block{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px;margin-bottom:14px;}
         .milestone-label{font-family:'Plus Jakarta Sans',sans-serif;font-size:8px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.28);margin-bottom:8px;}
         .milestone-track{position:relative;height:4px;background:rgba(255,255,255,0.06);border-radius:100px;overflow:hidden;margin-bottom:7px;}
@@ -269,7 +284,6 @@ export default function Home() {
 
         .confetti-layer{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:22px;}
 
-        /* ACTIONS */
         .card-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px;}
         .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:14px 12px;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:opacity 0.2s,transform 0.15s;letter-spacing:0.02em;white-space:nowrap;}
         .btn:hover:not(:disabled){opacity:0.82;transform:translateY(-1px);}
@@ -285,7 +299,6 @@ export default function Home() {
         .try-again:hover{color:var(--ink-secondary);}
         .data-note{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-tertiary);text-align:center;margin-top:10px;opacity:0.6;}
 
-        /* LEADERBOARD */
         .section-divider{width:100%;max-width:800px;height:1px;background:var(--void-05);}
         .leaderboard-section{width:100%;max-width:800px;padding-top:48px;}
         .section-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap;}
@@ -315,18 +328,13 @@ export default function Home() {
         .lb-x-handle{font-family:'DM Mono',monospace;font-size:10px;color:#7B3FE4;display:flex;align-items:center;gap:3px;}
 
         .lb-era{font-size:11px;}
-
-        /* Rank tier cell */
         .lb-tier-cell{display:inline-flex;align-items:center;gap:6px;}
         .lb-tier-badge{display:inline-flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:900;font-size:11px;width:26px;height:26px;border-radius:7px;flex-shrink:0;}
         .lb-score{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-tertiary);}
-
         .lb-days{font-size:11px;color:var(--ink-tertiary);text-align:right;}
-
         .lb-empty{text-align:center;padding:48px 24px;font-family:'DM Mono',monospace;font-size:12px;color:var(--ink-tertiary);}
         .lb-loading{display:flex;justify-content:center;padding:36px;}
 
-        /* FOOTER */
         footer{position:relative;z-index:1;text-align:center;padding:48px 16px 32px;font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-tertiary);line-height:2;max-width:800px;width:100%;margin:0 auto;}
         footer a{color:#A855F7;text-decoration:none;}
         footer a:hover{color:#C084FC;}
@@ -351,21 +359,17 @@ export default function Home() {
       <div className="bg-layer bg-glow-bot" />
 
       <div className="page-wrap">
-        {/* PILL */}
         <div className="anniv-pill anim-fadeup">
           <span className="dot" />Happy 6th Birthday, Polygon<span className="dot" />
         </div>
 
-        {/* HERO */}
         <div className="hero anim-fadeup-1">
           <span className="hero-eyebrow">polygon mainnet · launched may 30, 2020</span>
           <h1>When did you go<br /><span className="gradient-text">on-chain?</span></h1>
           <p className="hero-sub">Enter your wallet. We'll find your first Polygon transaction, score your OG rank, and generate a shareable card.</p>
         </div>
 
-        {/* INPUT */}
         <div className="input-section anim-fadeup-2">
-          {/* Wallet address */}
           <div className="input-row">
             <input
               type="text"
@@ -382,7 +386,6 @@ export default function Home() {
             </button>
           </div>
 
-          {/* X handle — optional */}
           <div className="input-row secondary">
             <span className="input-prefix">@</span>
             <input
@@ -411,7 +414,6 @@ export default function Home() {
 
         {step === 'result' && walletData && (
           <div className="result-wrap">
-            {/* SHARE CARD */}
             <div className="share-card" ref={cardRef}>
               <div className="confetti-layer" ref={confettiRef} />
 
@@ -424,7 +426,6 @@ export default function Home() {
                   <PolygonSVG size={26} />
                   Polygon PoS
                 </div>
-                {/* RANK BADGE */}
                 {walletData.rankScore > 0 && (
                   <div className="rank-badge-wrap">
                     <div className="rank-score-label">
@@ -508,7 +509,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* ACTIONS */}
             <div className="card-actions">
               <button className="btn btn-primary" onClick={handleDownload} disabled={downloadStatus === 'loading'}>
                 {downloadStatus === 'loading' ? <><DownloadIcon />Saving...</> :
@@ -543,7 +543,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* LEADERBOARD */}
         <div className="section-divider" style={{ marginTop: step === 'result' ? '56px' : '72px' }} />
 
         <div className="leaderboard-section">
@@ -571,6 +570,7 @@ export default function Home() {
               ) : leaderboard.length === 0 ? (
                 <tr><td colSpan={5}><div className="lb-empty">No entries yet — be the first! 🟣</div></td></tr>
               ) : leaderboard.map((entry, i) => {
+                if (!entry.address) return null
                 const isGenesis = entry.isGenesis === true
                 const isYou = !isGenesis && walletData?.address.toLowerCase() === entry.address.toLowerCase()
                 return (
@@ -632,7 +632,6 @@ export default function Home() {
   )
 }
 
-/* ── SVG ICONS ── */
 function PolygonSVG({ size = 24 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
