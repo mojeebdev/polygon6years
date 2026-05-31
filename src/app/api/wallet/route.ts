@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const POLYGONSCAN_API = 'https://api.polygonscan.com/api'
+const POLYGONSCAN_API = 'https://api.etherscan.io/v2/api?chainid=137'
 const POLYGON_RPC = 'https://polygon-rpc.com'
 
 export async function GET(req: NextRequest) {
@@ -16,17 +16,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const base = `${POLYGONSCAN_API}?startblock=0&endblock=99999999&page=1&offset=1&sort=asc&apikey=${apiKey}&address=${address}`
+    const base = `${POLYGONSCAN_API}&startblock=0&endblock=99999999&page=1&offset=1&sort=asc&apikey=${apiKey}&address=${address}`
     const [txRes, internalRes, tokenRes] = await Promise.allSettled([
       fetch(`${base}&module=account&action=txlist`,         { signal: AbortSignal.timeout(10000) }).then(r => r.json()),
       fetch(`${base}&module=account&action=txlistinternal`, { signal: AbortSignal.timeout(10000) }).then(r => r.json()),
       fetch(`${base}&module=account&action=tokentx`,        { signal: AbortSignal.timeout(10000) }).then(r => r.json()),
     ])
-
-    // DEBUG
-    console.log('txRes:', JSON.stringify(txRes))
-    console.log('internalRes:', JSON.stringify(internalRes))
-    console.log('tokenRes:', JSON.stringify(tokenRes))
 
     const allNotOk = [txRes, internalRes, tokenRes].every(
       r => r.status === 'fulfilled' && r.value?.message === 'NOTOK'
@@ -47,7 +42,7 @@ export async function GET(req: NextRequest) {
     }
 
     const countRes = await fetch(
-      `${POLYGONSCAN_API}?module=proxy&action=eth_getTransactionCount&address=${address}&tag=latest&apikey=${apiKey}`,
+      `${POLYGONSCAN_API}&module=proxy&action=eth_getTransactionCount&address=${address}&tag=latest&apikey=${apiKey}`,
       { signal: AbortSignal.timeout(8000) }
     )
     const countJson = await countRes.json()
