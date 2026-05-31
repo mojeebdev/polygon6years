@@ -10,6 +10,24 @@ import html2canvas from 'html2canvas'
 
 type Step = 'idle' | 'loading' | 'result' | 'error'
 
+const POLYGON_TEAM: Record<string, string> = {
+  sandeepnailwal:  'Founder & CEO',
+  mudit__gupta:    'CTO',
+  dianachimes:     'Marketing',
+  john3gan:        'CPO',
+  davidesilverman: 'SVP Product Strategy',
+  '0xmarcb':       'CEO',
+  jameslawton:     'Dev Relations',
+  '0xaishwary':    'Global Head of Business',
+  leonstern:       'SVP Marketing',
+  smokey_:         'Product Marketing',
+}
+
+function getTeamRole(handle: string | null): string | null {
+  if (!handle) return null
+  return POLYGON_TEAM[handle.toLowerCase().replace(/^@/, '')] ?? null
+}
+
 export default function Home() {
   const [input, setInput] = useState('')
   const [xHandleInput, setXHandleInput] = useState('')
@@ -23,6 +41,7 @@ export default function Home() {
   const [downloadStatus, setDownloadStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [copied, setCopied] = useState(false)
   const [milestoneWidth, setMilestoneWidth] = useState(0)
+  const [avatarError, setAvatarError] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
   const confettiRef = useRef<HTMLDivElement>(null)
 
@@ -47,7 +66,7 @@ export default function Home() {
     if (!addr) { setErrorMsg('Enter a wallet address'); setStep('error'); return }
     if (!isValidAddress(addr)) { setErrorMsg('Invalid address. Must start with 0x and be 42 characters.'); setStep('error'); return }
 
-    setStep('loading'); setErrorMsg(''); setMilestoneWidth(0); setSubmitStatus('idle')
+    setStep('loading'); setErrorMsg(''); setMilestoneWidth(0); setSubmitStatus('idle'); setAvatarError(false)
     const loadingSteps = ['Querying Polygon RPC...', 'Scanning first transaction...', 'Calculating your rank...']
     let si = 0
     const interval = setInterval(() => { si = (si + 1) % loadingSteps.length; setLoadingText(loadingSteps[si]) }, 1800)
@@ -68,7 +87,6 @@ export default function Home() {
         setMilestoneWidth(Math.max(5, pct))
       }, 700)
 
-      // auto-submit to leaderboard
       if (data.firstTxTimestamp) {
         try {
           await submitToLeaderboard({
@@ -88,9 +106,7 @@ export default function Home() {
           })
           setSubmitStatus('done')
           await loadLeaderboard()
-        } catch (_) {
-          // silent fail — user can still manually submit
-        }
+        } catch (_) {}
       }
     } catch (_) {
       clearInterval(interval)
@@ -174,11 +190,15 @@ export default function Home() {
 
   function handleReset() {
     setStep('idle'); setInput(''); setWalletData(null)
-    setErrorMsg(''); setMilestoneWidth(0); setSubmitStatus('idle')
+    setErrorMsg(''); setMilestoneWidth(0); setSubmitStatus('idle'); setAvatarError(false)
   }
 
   const tweetUrl = walletData ? buildTweetUrl(walletData, LAUNCH_TWEET_URL) : '#'
   const diffYears = walletData?.daysOnChain ? (walletData.daysOnChain / 365.25) : 0
+  const teamRole = walletData ? getTeamRole(walletData.xHandle) : null
+  const avatarUrl = walletData?.xHandle && !avatarError
+    ? `https://unavatar.io/twitter/${walletData.xHandle.replace(/^@/, '')}`
+    : null
 
   return (
     <>
@@ -188,7 +208,6 @@ export default function Home() {
           --void-01:#050508;--void-02:#0C0B14;--void-03:#141220;--void-04:#1E1B2E;--void-05:#2A2640;
           --ink-primary:#F4F0FF;--ink-secondary:#9B94B8;--ink-tertiary:#4E4870;
           --accent:#7B3FE4;--accent-2:#A855F7;--accent-3:#C084FC;
-          --accent-border:rgba(123,63,228,0.3);
         }
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
         body{background:var(--void-01);color:var(--ink-primary);font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
@@ -205,6 +224,7 @@ export default function Home() {
         @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
         @keyframes shimmer{0%{background-position:-200% center;}100%{background-position:200% center;}}
         @keyframes rankPop{0%{transform:scale(0.5);opacity:0;}60%{transform:scale(1.15);}100%{transform:scale(1);opacity:1;}}
+        @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
 
         .anim-fadeup{animation:fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) both;}
         .anim-fadeup-1{animation:fadeUp 0.7s 0.07s cubic-bezier(0.16,1,0.3,1) both;}
@@ -240,50 +260,132 @@ export default function Home() {
         .loading-ring{width:40px;height:40px;border:2px solid var(--void-05);border-top-color:var(--accent);border-right-color:#A855F7;border-radius:50%;animation:spin 0.7s linear infinite;}
         .loading-text{font-family:'DM Mono',monospace;font-size:12px;color:var(--ink-secondary);text-align:center;}
 
-        .result-wrap{width:100%;max-width:560px;margin-top:32px;animation:fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both;}
+        .result-wrap{width:100%;max-width:580px;margin-top:32px;animation:fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both;}
 
-        .share-card{background:linear-gradient(140deg,#0D0A1E 0%,#100D20 50%,#0C0A1A 100%);border:1px solid rgba(123,63,228,0.28);border-radius:22px;padding:24px 22px 22px;position:relative;overflow:hidden;}
-        .share-card::before{content:'';position:absolute;top:-100px;left:-80px;width:280px;height:280px;background:radial-gradient(circle,rgba(123,63,228,0.18),transparent 65%);pointer-events:none;}
-        .share-card::after{content:'';position:absolute;bottom:-80px;right:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(168,85,247,0.15),transparent 65%);pointer-events:none;}
+        /* ── PREMIUM CARD ── */
+        .share-card{
+          position:relative;overflow:hidden;border-radius:24px;padding:0;
+          background:linear-gradient(145deg,#0A0718 0%,#0E0B1E 40%,#0C0A1A 100%);
+          border:1px solid rgba(139,92,246,0.35);
+          box-shadow:0 0 0 1px rgba(139,92,246,0.1),0 24px 80px rgba(0,0,0,0.7),0 0 60px rgba(123,63,228,0.12);
+        }
 
-        .card-anniv-ribbon{display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Plus Jakarta Sans',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#C084FC;background:rgba(192,132,252,0.07);border:1px solid rgba(192,132,252,0.18);border-radius:8px;padding:8px 12px;margin-bottom:18px;flex-wrap:wrap;text-align:center;line-height:1.7;}
+        /* Polygon logo watermark */
+        .card-poly-bg{
+          position:absolute;right:-40px;top:50%;transform:translateY(-50%);
+          width:320px;height:320px;opacity:0.055;pointer-events:none;
+          animation:float 8s ease-in-out infinite;
+        }
 
-        .card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:8px;}
-        .polygon-logo{display:flex;align-items:center;gap:8px;font-family:'Syne',sans-serif;font-size:13px;font-weight:800;letter-spacing:-0.02em;color:var(--ink-primary);}
+        /* top purple glow bar */
+        .card-glow-bar{
+          position:absolute;top:0;left:0;right:0;height:2px;
+          background:linear-gradient(90deg,transparent,#7B3FE4,#A855F7,#C084FC,transparent);
+        }
 
-        .rank-badge-wrap{display:flex;align-items:center;gap:6px;}
-        .rank-tier-badge{display:inline-flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:900;font-size:14px;letter-spacing:-0.01em;width:36px;height:36px;border-radius:10px;flex-shrink:0;animation:rankPop 0.5s 0.3s cubic-bezier(0.16,1,0.3,1) both;}
-        .rank-score-label{display:flex;flex-direction:column;align-items:flex-end;}
-        .rank-score-num{font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,0.6);line-height:1.2;}
-        .rank-tier-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;line-height:1.2;}
+        /* inner glow blobs */
+        .card-blob-tl{position:absolute;top:-60px;left:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(123,63,228,0.2),transparent 65%);pointer-events:none;}
+        .card-blob-br{position:absolute;bottom:-60px;right:-60px;width:180px;height:180px;background:radial-gradient(circle,rgba(168,85,247,0.15),transparent 65%);pointer-events:none;}
 
-        .card-address{font-family:'Syne',sans-serif;font-size:clamp(18px,5vw,30px);font-weight:900;letter-spacing:-0.02em;color:#fff;margin-bottom:3px;word-break:break-all;line-height:1.1;}
-        .card-x-handle{font-family:'DM Mono',monospace;font-size:11px;color:#A855F7;margin-bottom:4px;display:flex;align-items:center;gap:4px;}
-        .card-era-row{font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,0.35);font-style:italic;margin-bottom:14px;}
+        .card-inner{position:relative;z-index:1;padding:24px 24px 20px;}
 
-        .card-chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
-        .chip{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:100px;padding:3px 10px;}
-        .chip .dot{width:5px;height:5px;border-radius:50%;background:#A855F7;flex-shrink:0;}
+        /* ribbon */
+        .card-ribbon{
+          display:flex;align-items:center;justify-content:center;gap:6px;
+          font-family:'Plus Jakarta Sans',sans-serif;font-size:9px;font-weight:700;
+          letter-spacing:0.12em;text-transform:uppercase;color:#C084FC;
+          background:rgba(192,132,252,0.06);border:1px solid rgba(192,132,252,0.15);
+          border-radius:6px;padding:7px 12px;margin-bottom:20px;text-align:center;line-height:1.7;
+        }
 
-        .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
-        .stat-block{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:13px 12px;}
-        .stat-label{font-family:'Plus Jakarta Sans',sans-serif;font-size:8px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.28);margin-bottom:6px;}
-        .stat-value{font-family:'DM Mono',monospace;font-size:13px;color:#fff;line-height:1.2;}
-        .stat-value.hero-num{font-family:'Syne',sans-serif;font-size:28px;font-weight:900;letter-spacing:-0.03em;background:linear-gradient(135deg,#A855F7,#C084FC);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-        .stat-value.purple{color:#C084FC;}
+        /* header row: avatar + identity + rank */
+        .card-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:18px;}
 
-        .milestone-block{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px;margin-bottom:14px;}
-        .milestone-label{font-family:'Plus Jakarta Sans',sans-serif;font-size:8px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.28);margin-bottom:8px;}
-        .milestone-track{position:relative;height:4px;background:rgba(255,255,255,0.06);border-radius:100px;overflow:hidden;margin-bottom:7px;}
+        /* AVATAR */
+        .avatar-wrap{flex-shrink:0;position:relative;}
+        .avatar-img{
+          width:64px;height:64px;border-radius:16px;
+          border:2px solid rgba(139,92,246,0.5);
+          object-fit:cover;display:block;
+          box-shadow:0 0 20px rgba(123,63,228,0.4);
+        }
+        .avatar-placeholder{
+          width:64px;height:64px;border-radius:16px;
+          border:2px solid rgba(139,92,246,0.5);
+          background:linear-gradient(135deg,rgba(123,63,228,0.3),rgba(168,85,247,0.2));
+          display:flex;align-items:center;justify-content:center;
+          font-family:'Syne',sans-serif;font-size:20px;font-weight:900;
+          color:rgba(192,132,252,0.8);
+          box-shadow:0 0 20px rgba(123,63,228,0.3);
+        }
+        .team-badge-dot{
+          position:absolute;bottom:-4px;right:-4px;
+          background:linear-gradient(135deg,#7B3FE4,#A855F7);
+          border:2px solid #0A0718;border-radius:8px;
+          padding:2px 5px;font-family:'Plus Jakarta Sans',sans-serif;
+          font-size:7px;font-weight:700;letter-spacing:0.06em;
+          text-transform:uppercase;color:#fff;white-space:nowrap;
+        }
+
+        /* identity block */
+        .card-identity{flex:1;min-width:0;}
+        .card-address{font-family:'Syne',sans-serif;font-size:clamp(16px,4vw,26px);font-weight:900;letter-spacing:-0.02em;color:#fff;line-height:1.1;margin-bottom:4px;word-break:break-all;}
+        .card-x-handle{font-family:'DM Mono',monospace;font-size:11px;color:#A855F7;display:flex;align-items:center;gap:4px;margin-bottom:3px;}
+        .card-era-row{font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,0.3);font-style:italic;}
+
+        /* rank badge */
+        .rank-badge-wrap{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;}
+        .rank-tier-badge{
+          display:inline-flex;align-items:center;justify-content:center;
+          font-family:'Syne',sans-serif;font-weight:900;font-size:16px;
+          width:44px;height:44px;border-radius:12px;
+          animation:rankPop 0.5s 0.3s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        .rank-score-num{font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,0.45);text-align:center;line-height:1.2;}
+        .rank-tier-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:7px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;text-align:center;line-height:1.2;}
+
+        /* TEAM badge row */
+        .team-row{
+          display:inline-flex;align-items:center;gap:6px;
+          background:linear-gradient(135deg,rgba(123,63,228,0.2),rgba(168,85,247,0.15));
+          border:1px solid rgba(139,92,246,0.35);border-radius:8px;
+          padding:6px 10px;margin-bottom:14px;
+          font-family:'Plus Jakarta Sans',sans-serif;font-size:10px;font-weight:700;
+          color:#C084FC;letter-spacing:0.04em;
+        }
+        .team-poly-icon{width:14px;height:14px;}
+
+        /* chips */
+        .card-chips{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:16px;}
+        .chip{display:inline-flex;align-items:center;gap:4px;font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:100px;padding:3px 9px;}
+        .chip .dot{width:4px;height:4px;border-radius:50%;background:#A855F7;flex-shrink:0;}
+
+        /* divider */
+        .card-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.2),transparent);margin-bottom:16px;}
+
+        /* stats */
+        .stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}
+        .stat-block{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.055);border-radius:10px;padding:11px 10px;}
+        .stat-label{font-family:'Plus Jakarta Sans',sans-serif;font-size:7px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:5px;}
+        .stat-value{font-family:'DM Mono',monospace;font-size:12px;color:#fff;line-height:1.2;}
+        .stat-value.hero-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:900;letter-spacing:-0.03em;background:linear-gradient(135deg,#A855F7,#C084FC);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+        .stat-value.purple{color:#C084FC;font-size:10px;}
+
+        /* milestone */
+        .milestone-block{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:10px;margin-bottom:16px;}
+        .milestone-label{font-family:'Plus Jakarta Sans',sans-serif;font-size:7px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.22);margin-bottom:7px;}
+        .milestone-track{position:relative;height:3px;background:rgba(255,255,255,0.06);border-radius:100px;overflow:hidden;margin-bottom:6px;}
         .milestone-fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#7B3FE4,#A855F7,#C084FC);border-radius:100px;transition:width 1.1s cubic-bezier(0.16,1,0.3,1);}
-        .milestone-sub{font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,0.28);line-height:1.6;}
+        .milestone-sub{font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,0.25);line-height:1.6;}
 
-        .card-footer-row{display:flex;align-items:center;justify-content:space-between;padding-top:13px;border-top:1px solid rgba(255,255,255,0.05);}
-        .card-footer-url{font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,0.2);}
-        .card-footer-emoji{font-size:15px;letter-spacing:3px;}
+        /* footer */
+        .card-footer-row{display:flex;align-items:center;justify-content:space-between;}
+        .card-footer-url{font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,0.18);}
+        .card-footer-tag{font-family:'DM Mono',monospace;font-size:8px;color:rgba(139,92,246,0.5);}
 
-        .confetti-layer{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:22px;}
+        .confetti-layer{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:24px;z-index:2;}
 
+        /* actions */
         .card-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px;}
         .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:14px 12px;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:opacity 0.2s,transform 0.15s;letter-spacing:0.02em;white-space:nowrap;}
         .btn:hover:not(:disabled){opacity:0.82;transform:translateY(-1px);}
@@ -299,6 +401,7 @@ export default function Home() {
         .try-again:hover{color:var(--ink-secondary);}
         .data-note{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-tertiary);text-align:center;margin-top:10px;opacity:0.6;}
 
+        /* leaderboard */
         .section-divider{width:100%;max-width:800px;height:1px;background:var(--void-05);}
         .leaderboard-section{width:100%;max-width:800px;padding-top:48px;}
         .section-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap;}
@@ -316,17 +419,14 @@ export default function Home() {
         .lb-table tbody tr.genesis-row{background:rgba(240,171,252,0.04);border-bottom:1px solid rgba(240,171,252,0.1);}
         .lb-table tbody tr.genesis-row:hover{background:rgba(240,171,252,0.07);}
         .lb-table td{padding:11px 14px;font-family:'DM Mono',monospace;font-size:12px;color:var(--ink-secondary);vertical-align:middle;}
-
         .lb-rank{font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--ink-tertiary);width:36px;text-align:center;}
         .lb-rank.top3{color:#A855F7;}
         .lb-rank.genesis{color:#F0ABFC;font-size:16px;}
-
         .lb-identity{display:flex;flex-direction:column;gap:1px;}
         .lb-address{font-family:'DM Mono',monospace;font-size:12px;color:var(--ink-primary);}
         .lb-address.is-you-text{color:#C084FC;}
         .lb-address.genesis-text{color:#F0ABFC;}
         .lb-x-handle{font-family:'DM Mono',monospace;font-size:10px;color:#7B3FE4;display:flex;align-items:center;gap:3px;}
-
         .lb-era{font-size:11px;}
         .lb-tier-cell{display:inline-flex;align-items:center;gap:6px;}
         .lb-tier-badge{display:inline-flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:900;font-size:11px;width:26px;height:26px;border-radius:7px;flex-shrink:0;}
@@ -345,11 +445,11 @@ export default function Home() {
           .card-actions{grid-template-columns:1fr 1fr;}
           .card-actions .btn:last-child{grid-column:1/-1;}
           .lb-table th:nth-child(3),.lb-table td:nth-child(3){display:none;}
+          .stats-grid{grid-template-columns:1fr 1fr;}
         }
         @media(max-width:420px){
           h1{font-size:28px;}
           .card-actions{grid-template-columns:1fr;}
-          .stats-grid{grid-template-columns:1fr 1fr;}
         }
       `}</style>
 
@@ -378,29 +478,25 @@ export default function Home() {
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleLookup()}
               disabled={step === 'loading'}
-              autoComplete="off"
-              spellCheck={false}
+              autoComplete="off" spellCheck={false}
             />
             <button className="lookup-btn" onClick={handleLookup} disabled={step === 'loading'}>
               Look up →
             </button>
           </div>
-
           <div className="input-row secondary">
             <span className="input-prefix">@</span>
             <input
               type="text"
-              placeholder="your X handle (optional — shows on card & leaderboard)"
+              placeholder="your X handle (optional — shows avatar & on leaderboard)"
               value={xHandleInput}
               onChange={e => setXHandleInput(e.target.value.replace(/^@/, ''))}
               onKeyDown={e => e.key === 'Enter' && handleLookup()}
               disabled={step === 'loading'}
-              autoComplete="off"
-              spellCheck={false}
+              autoComplete="off" spellCheck={false}
             />
           </div>
-
-          <p className="input-hint">Works with any EVM wallet · Polygon PoS mainnet · X handle optional but recommended</p>
+          <p className="input-hint">Works with any EVM wallet · Polygon PoS mainnet · X handle shows your avatar</p>
         </div>
 
         {step === 'error' && <div className="error-box">{errorMsg}</div>}
@@ -414,101 +510,141 @@ export default function Home() {
 
         {step === 'result' && walletData && (
           <div className="result-wrap">
+            {/* ── PREMIUM CARD ── */}
             <div className="share-card" ref={cardRef}>
               <div className="confetti-layer" ref={confettiRef} />
+              <div className="card-glow-bar" />
+              <div className="card-blob-tl" />
+              <div className="card-blob-br" />
 
-              <div className="card-anniv-ribbon">
-                🟣 &nbsp; Happy 6th Anniversary, @0xPolygon &nbsp; · &nbsp; May 30, 2020 – May 30, 2026 &nbsp; 🟣
-              </div>
+              {/* Polygon logo watermark */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/polygon.jpg" alt="" className="card-poly-bg" aria-hidden />
 
-              <div className="card-top">
-                <div className="polygon-logo">
-                  <PolygonSVG size={26} />
-                  Polygon PoS
+              <div className="card-inner">
+                {/* ribbon */}
+                <div className="card-ribbon">
+                  🟣 &nbsp; Happy 6th Anniversary, @0xPolygon &nbsp; · &nbsp; May 30, 2020 – May 30, 2026 &nbsp; 🟣
                 </div>
-                {walletData.rankScore > 0 && (
-                  <div className="rank-badge-wrap">
-                    <div className="rank-score-label">
-                      <span className="rank-score-num">{walletData.rankScore}/1000</span>
-                      <span className="rank-tier-name" style={{ color: walletData.rankTierColor }}>{walletData.rankTierLabel}</span>
+
+                {/* header: avatar + identity + rank */}
+                <div className="card-header">
+                  {/* avatar */}
+                  <div className="avatar-wrap">
+                    {avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatarUrl}
+                        alt={walletData.xHandle ?? ''}
+                        className="avatar-img"
+                        onError={() => setAvatarError(true)}
+                        crossOrigin="anonymous"
+                      />
+                    ) : (
+                      <div className="avatar-placeholder">
+                        {walletData.address.slice(2, 4).toUpperCase()}
+                      </div>
+                    )}
+                    {teamRole && <div className="team-badge-dot">🟣 TEAM</div>}
+                  </div>
+
+                  {/* identity */}
+                  <div className="card-identity">
+                    <div className="card-address">{shortenAddress(walletData.address)}</div>
+                    {walletData.xHandle && (
+                      <div className="card-x-handle">
+                        <XIconTiny />@{walletData.xHandle.replace(/^@/, '')}
+                      </div>
+                    )}
+                    <div className="card-era-row">{walletData.eraEmoji} {walletData.era}</div>
+                  </div>
+
+                  {/* rank */}
+                  {walletData.rankScore > 0 && (
+                    <div className="rank-badge-wrap">
+                      <div
+                        className="rank-tier-badge"
+                        style={{
+                          background: `${walletData.rankTierColor}20`,
+                          border: `1.5px solid ${walletData.rankTierColor}55`,
+                          color: walletData.rankTierColor,
+                        }}
+                      >
+                        {walletData.rankTier}
+                      </div>
+                      <div className="rank-score-num">{walletData.rankScore}/1000</div>
+                      <div className="rank-tier-name" style={{ color: walletData.rankTierColor }}>{walletData.rankTierLabel}</div>
                     </div>
-                    <div
-                      className="rank-tier-badge"
-                      style={{
-                        background: `${walletData.rankTierColor}20`,
-                        border: `1.5px solid ${walletData.rankTierColor}50`,
-                        color: walletData.rankTierColor,
-                      }}
-                    >
-                      {walletData.rankTier}
-                    </div>
+                  )}
+                </div>
+
+                {/* Polygon team badge */}
+                {teamRole && (
+                  <div className="team-row">
+                    <PolygonSVG size={14} />
+                    🟣 Polygon Team · {teamRole}
                   </div>
                 )}
-              </div>
 
-              <div className="card-address">{shortenAddress(walletData.address)}</div>
-              {walletData.xHandle && (
-                <div className="card-x-handle">
-                  <XIconTiny />{walletData.xHandle.replace(/^@/, '')}
+                {/* chips */}
+                <div className="card-chips">
+                  <span className="chip"><span className="dot" />Polygon Mainnet</span>
+                  {walletData.firstTxHash && <span className="chip">First Tx Verified</span>}
+                  {walletData.txCount && <span className="chip">{walletData.txCount.toLocaleString()} txns</span>}
+                  <span className="chip">{walletData.badgeLabel}</span>
                 </div>
-              )}
-              <div className="card-era-row">{walletData.eraEmoji} {walletData.era}</div>
 
-              <div className="card-chips">
-                <span className="chip"><span className="dot" />Polygon Mainnet</span>
-                {walletData.firstTxHash && <span className="chip">First Tx Verified</span>}
-                {walletData.txCount && <span className="chip">{walletData.txCount.toLocaleString()} txns</span>}
-                <span className="chip">{walletData.badgeLabel}</span>
-              </div>
+                <div className="card-divider" />
 
-              <div className="stats-grid">
-                <div className="stat-block">
-                  <div className="stat-label">First Tx Date</div>
-                  <div className="stat-value" style={{ fontSize: '11px' }}>
-                    {walletData.firstTxDate
-                      ? walletData.firstTxDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-                      : 'Active Wallet'}
+                {/* stats */}
+                <div className="stats-grid">
+                  <div className="stat-block">
+                    <div className="stat-label">First Tx</div>
+                    <div className="stat-value" style={{ fontSize: '10px' }}>
+                      {walletData.firstTxDate
+                        ? walletData.firstTxDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                        : 'Active Wallet'}
+                    </div>
+                  </div>
+                  <div className="stat-block">
+                    <div className="stat-label">Years on Chain</div>
+                    <div className="stat-value hero-num">
+                      {diffYears >= 1 ? diffYears.toFixed(1) + 'y' : (walletData.daysOnChain ?? '—') + 'd'}
+                    </div>
+                  </div>
+                  <div className="stat-block">
+                    <div className="stat-label">OG Score</div>
+                    <div className="stat-value purple">
+                      {walletData.percentile < 10 ? '🏛️ Genesis OG' :
+                       walletData.percentile < 25 ? '⚡ Early Mover' :
+                       walletData.percentile < 45 ? '💎 Diamond Hand' :
+                       walletData.percentile < 65 ? '🟣 Core Builder' : '✨ Rising User'}
+                    </div>
                   </div>
                 </div>
-                <div className="stat-block">
-                  <div className="stat-label">Years on Polygon</div>
-                  <div className="stat-value hero-num">
-                    {diffYears >= 1 ? diffYears.toFixed(1) + 'y' : (walletData.daysOnChain ?? '—') + 'd'}
+
+                {/* milestone */}
+                <div className="milestone-block">
+                  <div className="milestone-label">Time in Polygon history</div>
+                  <div className="milestone-track">
+                    <div className="milestone-fill" style={{ width: `${milestoneWidth}%` }} />
+                  </div>
+                  <div className="milestone-sub">
+                    {walletData.daysOnChain
+                      ? `${walletData.daysOnChain.toLocaleString()} days on-chain · ${walletData.txCount?.toLocaleString() ?? '?'} transactions`
+                      : 'Active wallet detected on Polygon mainnet'}
                   </div>
                 </div>
-                <div className="stat-block">
-                  <div className="stat-label">Days On-Chain</div>
-                  <div className="stat-value">{walletData.daysOnChain ? walletData.daysOnChain.toLocaleString() + ' days' : '—'}</div>
-                </div>
-                <div className="stat-block">
-                  <div className="stat-label">OG Score</div>
-                  <div className="stat-value purple">
-                    {walletData.percentile < 10 ? '🏛️ Genesis OG' :
-                     walletData.percentile < 25 ? '⚡ Early Mover' :
-                     walletData.percentile < 45 ? '💎 Diamond Hand' :
-                     walletData.percentile < 65 ? '🟣 Core Builder' : '✨ Rising User'}
-                  </div>
-                </div>
-              </div>
 
-              <div className="milestone-block">
-                <div className="milestone-label">Time in Polygon history</div>
-                <div className="milestone-track">
-                  <div className="milestone-fill" style={{ width: `${milestoneWidth}%` }} />
+                {/* card footer */}
+                <div className="card-footer-row">
+                  <span className="card-footer-url">polygon6years.firsttx.xyz</span>
+                  <span className="card-footer-tag">#Polygon6 · #POL 🟣</span>
                 </div>
-                <div className="milestone-sub">
-                  {walletData.daysOnChain
-                    ? `${walletData.daysOnChain.toLocaleString()} days of on-chain activity on Polygon PoS`
-                    : 'Active wallet detected on Polygon mainnet'}
-                </div>
-              </div>
-
-              <div className="card-footer-row">
-                <span className="card-footer-url">polygon6years.firsttx.xyz · #Polygon6</span>
-                <span className="card-footer-emoji">🟣🎂✨</span>
               </div>
             </div>
 
+            {/* action buttons */}
             <div className="card-actions">
               <button className="btn btn-primary" onClick={handleDownload} disabled={downloadStatus === 'loading'}>
                 {downloadStatus === 'loading' ? <><DownloadIcon />Saving...</> :
@@ -584,24 +720,14 @@ export default function Home() {
                           {isGenesis ? 'Genesis Block' : shortenAddress(entry.address)}{isYou ? ' (you)' : ''}
                         </span>
                         {entry.xHandle && (
-                          <span className="lb-x-handle">
-                            <XIconTiny />
-                            {entry.xHandle.replace(/^@/, '')}
-                          </span>
+                          <span className="lb-x-handle"><XIconTiny />{entry.xHandle.replace(/^@/, '')}</span>
                         )}
                       </div>
                     </td>
                     <td className="lb-era">{entry.eraEmoji} {entry.era}</td>
                     <td>
                       <div className="lb-tier-cell">
-                        <div
-                          className="lb-tier-badge"
-                          style={{
-                            background: `${entry.rankTierColor}22`,
-                            border: `1px solid ${entry.rankTierColor}44`,
-                            color: entry.rankTierColor,
-                          }}
-                        >
+                        <div className="lb-tier-badge" style={{ background: `${entry.rankTierColor}22`, border: `1px solid ${entry.rankTierColor}44`, color: entry.rankTierColor }}>
                           {entry.rankTier}
                         </div>
                         <span className="lb-score">{entry.rankScore}/1000</span>
@@ -637,8 +763,7 @@ function PolygonSVG({ size = 24 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="pg1" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#7B3FE4"/>
-          <stop offset="100%" stopColor="#A855F7"/>
+          <stop offset="0%" stopColor="#7B3FE4"/><stop offset="100%" stopColor="#A855F7"/>
         </linearGradient>
       </defs>
       <rect width="38" height="38" rx="10" fill="url(#pg1)" opacity="0.18"/>
@@ -647,7 +772,6 @@ function PolygonSVG({ size = 24 }: { size?: number }) {
     </svg>
   )
 }
-
 function XIconTiny() {
   return (
     <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.7 }}>
@@ -655,7 +779,6 @@ function XIconTiny() {
     </svg>
   )
 }
-
 function DownloadIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -665,7 +788,6 @@ function DownloadIcon() {
     </svg>
   )
 }
-
 function XIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
@@ -673,7 +795,6 @@ function XIcon() {
     </svg>
   )
 }
-
 function CopyIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
