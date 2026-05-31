@@ -150,17 +150,14 @@ export function buildShareText(data: WalletData): string {
   ].join('\n')
 }
 
-
+ 
 export function buildTweetUrl(data: WalletData): string {
   if (!data) return '#'
 
   const shareText = buildShareText(data)
 
-  const fullText = shareText +
-    `\n\n🔥 My Polygon 6th Anniversary OG card` +
-    `\nBuilt by @mojeebeth` +
-    `\n\n` +
-    LAUNCH_TWEET_URL
+  
+  const fullText = shareText + `\n\n` + LAUNCH_TWEET_URL
 
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText)}`
 }
