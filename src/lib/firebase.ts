@@ -10,5 +10,9 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 }
 
+if (!firebaseConfig.projectId) {
+  throw new Error('Firebase env vars missing — check NEXT_PUBLIC_FIREBASE_PROJECT_ID')
+}
+
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
 export const db = getFirestore(app)
