@@ -114,7 +114,7 @@ export async function fetchWalletData(address: string): Promise<WalletData | nul
   }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 export function isValidAddress(addr: string): boolean {
   return /^0x[0-9a-fA-F]{40}$/.test(addr)
 }
@@ -127,37 +127,30 @@ export const LAUNCH_TWEET_URL = "https://x.com/mojeebeth/status/2060925901584437
 
 export function buildShareText(data: WalletData): string {
   const dateStr = data.firstTxDate
-    ? data.firstTxDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-    : 'the early days'
+    ? data.firstTxDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    : 'early days'
+
   const yrs = data.daysOnChain ? Math.floor(data.daysOnChain / 365) : 0
-  const handleLine = data.xHandle ? `@${data.xHandle.replace(/^@/, '')} ` : ''
-  const rankLine   = data.rankScore > 0
-    ? `\nRank: ${data.rankScore}/1000 · ${data.rankTier} ${data.rankTierLabel}`
-    : ''
+  const handle = data.xHandle ? `@${data.xHandle.replace(/^@/, '')} ` : ''
+
+  const rank = data.rankScore > 0 ? ` • Rank ${data.rankScore}/1000` : ''
 
   return [
-    `🟣 Happy 6th Anniversary @0xPolygon!`,
+    `🟣 6th Anniversary @0xPolygon!`,
     ``,
-    `${handleLine}${shortenAddress(data.address)} has been on Polygon since ${dateStr}${yrs > 0 ? ` — ${yrs} year${yrs > 1 ? 's' : ''} on-chain` : ''}.`,
-    ``,
+    `${handle}${shortenAddress(data.address)} since ${dateStr}${yrs ? ` (${yrs}y)` : ''}.${rank}`,
     `${data.eraEmoji} ${data.era}`,
-    `${data.badgeLabel}${rankLine}`,
     ``,
-    `When did YOU first go on-chain? 👇`,
-    `polygon6years.firsttx.xyz`,
-    ``,
-    `#Polygon6 #Polygon #Web3 #POL`,
+    `When did you go on-chain? 👇`,
+    `polygon6years.firsttx.xyz`
   ].join('\n')
 }
 
- 
+
 export function buildTweetUrl(data: WalletData): string {
   if (!data) return '#'
 
-  const shareText = buildShareText(data)
+  const text = buildShareText(data) + `\n\n` + LAUNCH_TWEET_URL
 
-  
-  const fullText = shareText + `\n\n` + LAUNCH_TWEET_URL
-
-  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText)}`
+  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`
 }
