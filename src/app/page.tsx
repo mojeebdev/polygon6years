@@ -2,8 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react'
 import {
-  fetchWalletData, isValidAddress, shortenAddress, buildShareText, buildTweetUrl,
-  POLYGON_BIRTHDAY, NOW, LAUNCH_TWEET_URL, type WalletData
+  fetchWalletData,
+  isValidAddress,
+  shortenAddress,
+  buildShareText,
+  buildTweetUrl,        
+  POLYGON_BIRTHDAY,
+  NOW,
+  type WalletData
 } from '@/lib/polygon'
 import { submitToLeaderboard, getLeaderboard, type LeaderboardEntry } from '@/lib/leaderboard'
 import html2canvas from 'html2canvas'
@@ -193,7 +199,9 @@ export default function Home() {
     setErrorMsg(''); setMilestoneWidth(0); setSubmitStatus('idle'); setAvatarError(false)
   }
 
-  const tweetUrl = walletData ? buildTweetUrl(walletData, LAUNCH_TWEET_URL) : '#'
+  // ✅ FIXED: Now correctly calls the updated buildTweetUrl
+  const tweetUrl = walletData ? buildTweetUrl(walletData) : '#'
+
   const diffYears = walletData?.daysOnChain ? (walletData.daysOnChain / 365.25) : 0
   const teamRole = walletData ? getTeamRole(walletData.xHandle) : null
   const avatarUrl = walletData?.xHandle && !avatarError

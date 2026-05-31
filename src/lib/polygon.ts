@@ -17,7 +17,6 @@ export interface WalletData {
   rankTierColor: string
 }
 
-
 export const POLYGON_BIRTHDAY = new Date('2020-05-30T00:00:00Z')
 export const NOW = new Date('2026-05-30T00:00:00Z')
 
@@ -68,7 +67,6 @@ export function getRankTier(score: number): { tier: string; label: string; color
 // ─── Unranked placeholder ─────────────────────────────────────────────────────
 const UNRANKED = { rankScore: 0, rankTier: '?', rankTierLabel: 'Unranked', rankTierColor: '#4E4870' }
 
-
 export async function fetchWalletData(address: string): Promise<WalletData | null> {
   const res = await fetch(`/api/wallet?address=${encodeURIComponent(address)}`, {
     signal: AbortSignal.timeout(15000),
@@ -80,9 +78,7 @@ export async function fetchWalletData(address: string): Promise<WalletData | nul
 
   const { source, firstTxHash, firstTxTimestamp, txCount } = json
 
- 
   if (!firstTxTimestamp) {
-   
     if (!source) return null
     return {
       address, xHandle: null,
@@ -127,8 +123,7 @@ export function shortenAddress(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`
 }
 
-
-export const LAUNCH_TWEET_URL = 'https://x.com/mojeebeth/status/2060925901584437531'
+export const LAUNCH_TWEET_URL = "https://x.com/mojeebeth/status/2060925901584437531"
 
 export function buildShareText(data: WalletData): string {
   const dateStr = data.firstTxDate
@@ -155,13 +150,17 @@ export function buildShareText(data: WalletData): string {
   ].join('\n')
 }
 
-export function buildTweetUrl(data: WalletData, launchTweetUrl: string): string {
-  const encoded = encodeURIComponent(buildShareText(data))
-  const isPlaceholder = launchTweetUrl.includes('REPLACE_WITH')
-  if (isPlaceholder) {
-    return `https://twitter.com/intent/tweet?text=${encoded}`
-  }
-  
-  const tweetId = launchTweetUrl.split('/status/')[1]?.split('?')[0]
-  return `https://twitter.com/intent/tweet?text=${encoded}${tweetId ? `&quote_tweet_id=${tweetId}` : ''}`
+
+export function buildTweetUrl(data: WalletData): string {
+  if (!data) return '#'
+
+  const shareText = buildShareText(data)
+
+  const fullText = shareText +
+    `\n\n🔥 My Polygon 6th Anniversary OG card` +
+    `\nBuilt by @mojeebeth` +
+    `\n\n` +
+    LAUNCH_TWEET_URL
+
+  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText)}`
 }
