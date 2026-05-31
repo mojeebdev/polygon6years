@@ -79,3 +79,4 @@ export async function getLeaderboard(count = 50): Promise<LeaderboardEntry[]> {
   
   return [GENESIS_ENTRY, ...entries]
 }
+
