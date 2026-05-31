@@ -128,7 +128,7 @@ export function shortenAddress(addr: string): string {
 }
 
 
-export const LAUNCH_TWEET_URL = 'https://x.com/mojeebeth/status/REPLACE_WITH_LAUNCH_TWEET_ID'
+export const LAUNCH_TWEET_URL = 'https://x.com/mojeebeth/status/2060925901584437531'
 
 export function buildShareText(data: WalletData): string {
   const dateStr = data.firstTxDate
