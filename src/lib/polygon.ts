@@ -149,7 +149,7 @@ export function buildShareText(data: WalletData): string {
     `${data.badgeLabel}${rankLine}`,
     ``,
     `When did YOU first go on-chain? 👇`,
-    `polygon.firsttx.xyz`,
+    `polygon6years.firsttx.xyz`,
     ``,
     `#Polygon6 #Polygon #Web3 #POL`,
   ].join('\n')

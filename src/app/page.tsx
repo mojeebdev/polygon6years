@@ -503,7 +503,7 @@ export default function Home() {
               </div>
 
               <div className="card-footer-row">
-                <span className="card-footer-url">polygon.firsttx.xyz · #Polygon6</span>
+                <span className="card-footer-url">polygon6years.firsttx.xyz · #Polygon6</span>
                 <span className="card-footer-emoji">🟣🎂✨</span>
               </div>
             </div>
