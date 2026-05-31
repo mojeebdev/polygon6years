@@ -68,7 +68,7 @@ export function getRankTier(score: number): { tier: string; label: string; color
 }
 
 async function fetchFromPolygonscan(address: string): Promise<WalletData | null> {
-  const apiKey = process.env.NEXT_PUBLIC_POLYGONSCAN_API_KEY || 'YourApiKeyToken'
+  const apiKey = process.env.POLYGONSCAN_API_KEY 
 
   const txRes = await fetch(
     `${POLYGONSCAN_API}?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=1&sort=asc&apikey=${apiKey}`,
