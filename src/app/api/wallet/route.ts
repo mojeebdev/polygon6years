@@ -12,12 +12,10 @@ export async function GET(req: NextRequest) {
 
   const apiKey = process.env.POLYGONSCAN_API_KEY
   if (!apiKey) {
-    
     return await rpcFallback(address)
   }
 
   try {
-    
     const base = `${POLYGONSCAN_API}?startblock=0&endblock=99999999&page=1&offset=1&sort=asc&apikey=${apiKey}&address=${address}`
     const [txRes, internalRes, tokenRes] = await Promise.allSettled([
       fetch(`${base}&module=account&action=txlist`,         { signal: AbortSignal.timeout(10000) }).then(r => r.json()),
@@ -25,13 +23,16 @@ export async function GET(req: NextRequest) {
       fetch(`${base}&module=account&action=tokentx`,        { signal: AbortSignal.timeout(10000) }).then(r => r.json()),
     ])
 
-   
+    // DEBUG
+    console.log('txRes:', JSON.stringify(txRes))
+    console.log('internalRes:', JSON.stringify(internalRes))
+    console.log('tokenRes:', JSON.stringify(tokenRes))
+
     const allNotOk = [txRes, internalRes, tokenRes].every(
       r => r.status === 'fulfilled' && r.value?.message === 'NOTOK'
     )
     if (allNotOk) return await rpcFallback(address)
 
-    
     const candidates: Array<{ hash: string; timestamp: number }> = []
 
     for (const result of [txRes, internalRes, tokenRes]) {
@@ -45,7 +46,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    
     const countRes = await fetch(
       `${POLYGONSCAN_API}?module=proxy&action=eth_getTransactionCount&address=${address}&tag=latest&apikey=${apiKey}`,
       { signal: AbortSignal.timeout(8000) }
@@ -54,11 +54,9 @@ export async function GET(req: NextRequest) {
     const txCount = countJson.result ? parseInt(countJson.result, 16) : null
 
     if (candidates.length === 0) {
-      
       return NextResponse.json({ source: 'Polygonscan', firstTxHash: null, firstTxTimestamp: null, txCount })
     }
 
-  
     const earliest = candidates.reduce((a, b) => a.timestamp <= b.timestamp ? a : b)
 
     return NextResponse.json({
@@ -67,7 +65,8 @@ export async function GET(req: NextRequest) {
       firstTxTimestamp: earliest.timestamp,
       txCount,
     })
-  } catch {
+  } catch (e) {
+    console.log('route error:', e)
     return await rpcFallback(address)
   }
 }
