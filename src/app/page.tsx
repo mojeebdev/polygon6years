@@ -622,7 +622,7 @@ export default function Home() {
           {' '}&amp;{' '}
           <a href="https://polygon-rpc.com" target="_blank" rel="noopener">Polygon RPC</a>
           <div className="footer-love">
-            Built with <span>💜 purple love</span> by{' '}
+            Built with <span>💜</span> by{' '}
             <a href="https://x.com/mojeebeth" target="_blank" rel="noopener">@mojeebeth</a>
             {' '}· in celebration of six years of Polygon
           </div>
