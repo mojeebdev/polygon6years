@@ -21,7 +21,7 @@ export interface WalletData {
 export const POLYGON_BIRTHDAY = new Date('2020-05-30T00:00:00Z')
 export const NOW = new Date('2026-05-30T00:00:00Z')
 
-
+// ─── Era classification ───────────────────────────────────────────────────────
 function getEra(date: Date): { era: string; emoji: string } {
   const yr = date.getFullYear()
   const mo = date.getMonth()
@@ -80,14 +80,15 @@ export async function fetchWalletData(address: string): Promise<WalletData | nul
 
   const { source, firstTxHash, firstTxTimestamp, txCount } = json
 
-  
+ 
   if (!firstTxTimestamp) {
-    if (!txCount || txCount === 0) return null
+   
+    if (!source) return null
     return {
       address, xHandle: null,
       firstTxHash: null, firstTxDate: null, firstTxTimestamp: null,
-      txCount, source,
-      era: 'Active Wallet', eraEmoji: '🟣',
+      txCount: txCount ?? 0, source,
+      era: 'On Polygon · Receive Only', eraEmoji: '🟣',
       daysOnChain: null, percentile: 0,
       badgeLabel: '🟣 Active Wallet',
       ...UNRANKED,
@@ -160,7 +161,7 @@ export function buildTweetUrl(data: WalletData, launchTweetUrl: string): string 
   if (isPlaceholder) {
     return `https://twitter.com/intent/tweet?text=${encoded}`
   }
-  // Extract tweet ID from URL and quote-tweet it
+  
   const tweetId = launchTweetUrl.split('/status/')[1]?.split('?')[0]
   return `https://twitter.com/intent/tweet?text=${encoded}${tweetId ? `&quote_tweet_id=${tweetId}` : ''}`
 }
